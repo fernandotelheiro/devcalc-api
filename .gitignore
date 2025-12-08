@@ -4,3 +4,9 @@
 
 # Build
 target/
+
+# Artefatos de build
+target/
+
+# Gerado pelo maven-shade-plugin
+dependency-reduced-pom.xml
