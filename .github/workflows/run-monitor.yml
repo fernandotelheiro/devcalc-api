@@ -1,0 +1,78 @@
+name: Run monitor
+
+on:
+  # Execução manual pelo GitHub
+  workflow_dispatch:
+
+env:
+  # Habilita logs de debug no Actions
+  ACTIONS_STEP_DEBUG: true
+  REQUIRED_SERVICE: "devcalc-api"
+
+jobs:
+  check-and-deploy:
+    runs-on: ubuntu-latest
+
+    # Ambiente protegido (vai usar environment "production")
+    environment:
+      name: production
+      url: https://${{ vars.PROD_DOMAIN }}
+
+    # Variáveis específicas deste job
+    env:
+      SERVICE_URL: https://${{ vars.PROD_DOMAIN }}/health
+      TIMEOUT: ${{ vars.TIMEOUT || '30' }}
+
+    steps:
+      - name: Mostrar configuração carregada
+        run: |
+          echo "Aplicação: ${{ vars.APP_NAME }}"
+          echo "Serviço: $REQUIRED_SERVICE"
+          echo "URL de serviço: $SERVICE_URL"
+
+      - name: Validar variáveis obrigatórias
+        run: |
+          if [ -z "${{ vars.PROD_DOMAIN }}" ]; then
+            echo "::error::A variável PROD_DOMAIN não está definida. Configure em Settings → Environments → production."
+            exit 1
+          fi
+          if [ -z "${{ secrets.API_KEY }}" ]; then
+            echo "::error::O segredo API_KEY não está configurado. Adicione em Settings → Secrets and variables → Actions."
+            exit 1
+          fi
+          echo "::notice::Todas as variáveis obrigatórias estão configuradas."
+
+      - name: Configurar JDK e rodar testes de verificação
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Executar testes antes do deploy
+        run: |
+          echo "Rodando testes de verificação antes do deploy..."
+          mvn -B test
+
+      - name: Chamar API externa de monitoramento (simulado)
+        env:
+          API_KEY: ${{ secrets.API_KEY }}
+        run: |
+          echo "::warning::Chamando API de monitoramento simulada. Em um cenário real, use curl com a API_KEY."
+          echo "Exemplo: curl -H 'X-API-KEY: ****' '$SERVICE_URL'"
+          echo "Se a chamada falhar, verifique conectividade e validade da API_KEY."
+
+      - name: Simular health check do serviço
+        run: |
+          echo "::warning::Health check é simulado. Substitua por um curl real para $SERVICE_URL."
+          echo "curl --max-time $TIMEOUT '$SERVICE_URL' || echo 'Serviço indisponível'"
+
+      - name: Deploy (simulado)
+        if: success()
+        run: |
+          echo "Fazendo deploy da aplicação ${{ vars.APP_NAME }} em $SERVICE_URL..."
+          echo "Deploy concluído com sucesso."
+          echo "### Resumo do deploy" >> $GITHUB_STEP_SUMMARY
+          echo "- Aplicação: ${{ vars.APP_NAME }}" >> $GITHUB_STEP_SUMMARY
+          echo "- Ambiente: production" >> $GITHUB_STEP_SUMMARY
+          echo "- URL: $SERVICE_URL" >> $GITHUB_STEP_SUMMARY
+          echo "- Resultado: sucesso" >> $GITHUB_STEP_SUMMARY
