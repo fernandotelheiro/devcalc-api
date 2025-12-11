@@ -24,6 +24,9 @@ jobs:
       TIMEOUT: ${{ vars.TIMEOUT || '30' }}
 
     steps:
+      - name: Checkout código
+        uses: actions/checkout@v4
+
       - name: Mostrar configuração carregada
         run: |
           echo "Aplicação: ${{ vars.APP_NAME }}"
